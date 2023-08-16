@@ -3,11 +3,11 @@ package tencent
 import (
 	"context"
 	"fmt"
+	"github.com/burybell/oss"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"net/http"
 	"net/url"
-	"oss"
 	"strings"
 )
 

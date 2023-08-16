@@ -2,12 +2,12 @@ package sugar
 
 import (
 	"errors"
-	"oss"
-	"oss/aliyun"
-	"oss/local"
-	"oss/minio"
-	"oss/s3"
-	"oss/tencent"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/aliyun"
+	"github.com/burybell/oss/local"
+	"github.com/burybell/oss/minio"
+	"github.com/burybell/oss/s3"
+	"github.com/burybell/oss/tencent"
 )
 
 type Options struct {

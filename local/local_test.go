@@ -2,11 +2,11 @@ package local_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/local"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/local"
 	"strings"
 	"testing"
 )

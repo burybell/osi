@@ -2,16 +2,16 @@ package sugar_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/aliyun"
+	"github.com/burybell/oss/local"
+	"github.com/burybell/oss/minio"
+	"github.com/burybell/oss/s3"
+	"github.com/burybell/oss/sugar"
+	"github.com/burybell/oss/tencent"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/aliyun"
-	"oss/local"
-	"oss/minio"
-	"oss/s3"
-	"oss/sugar"
-	"oss/tencent"
 	"strings"
 	"testing"
 )

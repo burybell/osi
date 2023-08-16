@@ -2,11 +2,11 @@ package minio_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/minio"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/minio"
 	"strings"
 	"testing"
 )

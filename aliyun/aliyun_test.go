@@ -2,11 +2,11 @@ package aliyun_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/aliyun"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/aliyun"
 	"strings"
 	"testing"
 )

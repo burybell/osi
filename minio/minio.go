@@ -3,10 +3,10 @@ package minio
 import (
 	"context"
 	"errors"
+	"github.com/burybell/oss"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
-	"oss"
 	"strings"
 )
 

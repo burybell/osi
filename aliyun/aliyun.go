@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	aliyun "github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/burybell/oss"
 	"io"
-	"oss"
 	"strconv"
 	"strings"
 )

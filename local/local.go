@@ -3,9 +3,9 @@ package local
 import (
 	"errors"
 	"fmt"
+	"github.com/burybell/oss"
 	"io"
 	"os"
-	"oss"
 	"path/filepath"
 	"strconv"
 	"strings"

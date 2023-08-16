@@ -2,11 +2,11 @@ package s3_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/s3"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/s3"
 	"strings"
 	"testing"
 )

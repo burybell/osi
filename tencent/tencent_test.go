@@ -2,11 +2,11 @@ package tencent_test
 
 import (
 	"encoding/json"
+	"github.com/burybell/oss"
+	"github.com/burybell/oss/tencent"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
-	"oss"
-	"oss/tencent"
 	"strings"
 	"testing"
 )
