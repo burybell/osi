@@ -1,17 +1,21 @@
 package s3
 
 import (
+	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/burybell/oss"
 	"io"
 	"mime"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -186,6 +190,39 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 	return oss.NewSize(*resp.ContentLength), nil
+}
+
+func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+
+	var req *request.Request
+	switch method {
+	case http.MethodGet:
+		req, _ = t.client.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(t.bucket),
+			Key:    aws.String(path),
+		})
+		return req.Presign(expiredInDur)
+	case http.MethodPut:
+		req, _ = t.client.PutObjectRequest(&s3.PutObjectInput{
+			Bucket: aws.String(t.bucket),
+			Key:    aws.String(path),
+		})
+		return req.Presign(expiredInDur)
+	case http.MethodDelete:
+		req, _ = t.client.DeleteObjectRequest(&s3.DeleteObjectInput{
+			Bucket: aws.String(t.bucket),
+			Key:    aws.String(path),
+		})
+		return req.Presign(expiredInDur)
+	case http.MethodHead:
+		req, _ = t.client.HeadObjectRequest(&s3.HeadObjectInput{
+			Bucket: aws.String(t.bucket),
+			Key:    aws.String(path),
+		})
+		return req.Presign(expiredInDur)
+	default:
+		return "", errors.New("not support")
+	}
 }
 
 type aclEnum struct {

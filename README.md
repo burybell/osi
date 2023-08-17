@@ -77,6 +77,12 @@ func main() {
 		// delete object
 		_ = bucket.DeleteObject(objects[i].ObjectPath())
 	}
+
+	url, err := bucket.SignURL("path/to/file", http.MethodGet, time.Second*100)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(url)
 }
 
 ```

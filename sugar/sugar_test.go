@@ -2,6 +2,7 @@ package sugar_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/burybell/oss"
 	"github.com/burybell/oss/aliyun"
 	"github.com/burybell/oss/local"
@@ -11,9 +12,11 @@ import (
 	"github.com/burybell/oss/tencent"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -114,4 +117,12 @@ func TestBucket_ListObject(t *testing.T) {
 	objects, err := bucket.ListObject("test/")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(objects))
+}
+
+func Test_bucket_SignURL(t *testing.T) {
+	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	assert.NoError(t, err)
+	url, err := bucket.SignURL("test/example.txt", http.MethodGet, time.Second*100)
+	assert.NoError(t, err)
+	fmt.Println(url)
 }

@@ -1,6 +1,9 @@
 package oss
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 type Size interface {
 	Size() int64
@@ -14,6 +17,7 @@ type Bucket interface {
 	DeleteObject(path string) error
 	ListObject(prefix string) ([]ObjectMeta, error)
 	GetObjectSize(path string) (Size, error)
+	SignURL(path string, method string, expiredInDur time.Duration) (string, error)
 }
 
 type size int64

@@ -6,9 +6,12 @@ import (
 	"github.com/burybell/oss/local"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"log"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 var (
@@ -83,4 +86,23 @@ func TestBucket_ListObject(t *testing.T) {
 	objects, err := bucket.ListObject("test/")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(objects))
+}
+
+func Test_bucket_SignURL(t *testing.T) {
+	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	assert.NoError(t, err)
+	url, err := bucket.SignURL("test/example.txt", http.MethodGet, time.Second*100)
+	log.Println(url)
+	assert.NoError(t, err)
+	go func() {
+		log.Fatalln(http.ListenAndServe(":8080", nil))
+	}()
+
+	select {
+	case <-time.After(time.Second * 1):
+		resp, err := http.Get(url)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		return
+	}
 }

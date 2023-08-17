@@ -7,7 +7,10 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
+	"mime"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -107,6 +110,7 @@ func (t *bucket) PutObject(path string, reader io.Reader) error {
 func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) error {
 	opts := minio.PutObjectOptions{}
 	opts.Header().Set("x-amz-acl", acl)
+	opts.ContentType = mime.TypeByExtension(filepath.Ext(path))
 	_, err := t.client.PutObject(context.TODO(), t.bucket, path, reader, -1, opts)
 	return err
 }
@@ -148,6 +152,14 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 	return oss.NewSize(stat.Size), nil
+}
+
+func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+	url, err := t.client.Presign(context.TODO(), method, t.bucket, path, expiredInDur, nil)
+	if err != nil {
+		return "", err
+	}
+	return url.String(), nil
 }
 
 type aclEnum struct {

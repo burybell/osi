@@ -6,8 +6,11 @@ import (
 	aliyun "github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/burybell/oss"
 	"io"
+	"mime"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -93,7 +96,7 @@ func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) er
 	if err != nil {
 		return err
 	}
-	return bkt.PutObject(object.ObjectPath(), object, aliyun.ObjectACL(aliyun.ACLType(acl)))
+	return bkt.PutObject(object.ObjectPath(), object, aliyun.ObjectACL(aliyun.ACLType(acl)), aliyun.ContentType(mime.TypeByExtension(filepath.Ext(path))))
 }
 
 func (t *bucket) HeadObject(path string) (bool, error) {
@@ -157,6 +160,14 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 	return oss.NewSize(size), nil
+}
+
+func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+	bkt, err := t.client.Bucket(t.bucket)
+	if err != nil {
+		return "", err
+	}
+	return bkt.SignURL(path, aliyun.HTTPMethod(method), int64(expiredInDur.Seconds()))
 }
 
 type aclEnum struct {

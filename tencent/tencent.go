@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 const (
@@ -168,6 +169,14 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 	return oss.NewSize(resp.ContentLength), nil
+}
+
+func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+	url, err := t.client.Object.GetPresignedURL(context.TODO(), method, path, t.config.KeyID, t.config.Secret, expiredInDur, nil)
+	if err != nil {
+		return "", err
+	}
+	return url.String(), nil
 }
 
 type aclEnum struct {

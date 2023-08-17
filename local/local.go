@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -16,14 +17,16 @@ const (
 )
 
 type Config struct {
-	BasePath string `yaml:"base_path" mapstructure:"base_path" json:"base_path"`
+	BasePath   string `yaml:"base_path" mapstructure:"base_path" json:"base_path"`
+	HttpAddr   string `yaml:"http_addr" mapstructure:"http_addr" json:"http_addr"`
+	HttpSecret string `yaml:"http_secret" mapstructure:"http_secret" json:"http_secret"`
 }
 
 type objectstore struct {
 	config Config
 }
 
-func NewObjectStore(config Config) (oss.ObjectStore, error) {
+func NewObjectStore(config Config) (oss oss.ObjectStore, err error) {
 	stat, err := os.Stat(config.BasePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -39,6 +42,11 @@ func NewObjectStore(config Config) (oss.ObjectStore, error) {
 			return nil, errors.New("base path is not a directory")
 		}
 	}
+	defer func() {
+		if config.HttpAddr != "" && err == nil {
+			HandleHttp(oss.(*objectstore), config.HttpSecret)
+		}
+	}()
 	return &objectstore{config: config}, nil
 }
 
@@ -196,6 +204,12 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 	return oss.NewSize(stat.Size()), nil
+}
+
+func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+	expires := time.Now().Add(expiredInDur).Unix()
+	signature := Sign(method, fmt.Sprintf("%s/%s", t.bucket, path), int(expires), t.config.HttpSecret)
+	return fmt.Sprintf("%s/%s/%s?expires=%d&signature=%s", t.config.HttpAddr, t.bucket, path, expires, signature), nil
 }
 
 type aclEnum struct {
