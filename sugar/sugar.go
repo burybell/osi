@@ -79,7 +79,7 @@ func NewObjectStore(opt ...Option) (oss.ObjectStore, error) {
 	case minio.Name:
 		return minio.NewObjectStore(opts.Minio)
 	default:
-		return nil, errors.New("no support objectstore")
+		return nil, errors.New("no support object store")
 	}
 }
 
