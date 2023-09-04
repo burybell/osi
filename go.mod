@@ -16,6 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.4+incompatible // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
