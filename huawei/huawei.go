@@ -163,8 +163,8 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		return nil, err
 	}
 
-	if len(resp.ResponseHeaders["Content-Length"]) > 0 {
-		sz, err := strconv.ParseInt(resp.ResponseHeaders["Content-Length"][0], 10, 64)
+	if len(resp.ResponseHeaders["content-length"]) > 0 {
+		sz, err := strconv.ParseInt(resp.ResponseHeaders["content-length"][0], 10, 64)
 		if err != nil {
 			return nil, err
 		}
