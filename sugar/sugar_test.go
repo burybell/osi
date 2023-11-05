@@ -3,14 +3,14 @@ package sugar_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/aliyun"
-	"github.com/burybell/oss/huawei"
-	"github.com/burybell/oss/local"
-	"github.com/burybell/oss/minio"
-	"github.com/burybell/oss/s3"
-	"github.com/burybell/oss/sugar"
-	"github.com/burybell/oss/tencent"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/cos"
+	"github.com/burybell/osi/local"
+	"github.com/burybell/osi/minio"
+	"github.com/burybell/osi/obs"
+	"github.com/burybell/osi/oss"
+	"github.com/burybell/osi/s3"
+	"github.com/burybell/osi/sugar"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -21,58 +21,74 @@ import (
 )
 
 var (
-	objectstore oss.ObjectStore
-	bucket      oss.Bucket
+	objectStore osi.ObjectStore
+	bucket      osi.Bucket
 )
 
 type Config struct {
-	AliYun            aliyun.Config  `json:"aliyun"`
-	S3                s3.Config      `json:"s3"`
-	Tencent           tencent.Config `json:"tencent"`
-	Local             local.Config   `json:"local"`
-	Minio             minio.Config   `json:"minio"`
-	Huawei            huawei.Config  `json:"huawei"`
-	UseName           string         `json:"use_name"`
-	AliYunBucketName  string         `json:"aliyun_bucket_name"`
-	S3BucketName      string         `json:"s3_bucket_name"`
-	TencentBucketName string         `json:"tencent_bucket_name"`
-	LocalBucketName   string         `json:"local_bucket_name"`
-	MinioBucketName   string         `json:"minio_bucket_name"`
-	HuaweiBucketName  string         `json:"huawei_bucket_name"`
+	OSS               oss.Config   `json:"oss"`
+	S3                s3.Config    `json:"s3"`
+	COS               cos.Config   `json:"cos"`
+	Local             local.Config `json:"local"`
+	Minio             minio.Config `json:"minio"`
+	OBS               obs.Config   `json:"obs"`
+	UseName           string       `json:"use_name"`
+	AliYunBucketName  string       `json:"oss_bucket_name"`
+	S3BucketName      string       `json:"s3_bucket_name"`
+	TencentBucketName string       `json:"cos_bucket_name"`
+	LocalBucketName   string       `json:"local_bucket_name"`
+	MinioBucketName   string       `json:"minio_bucket_name"`
+	HuaweiBucketName  string       `json:"obs_bucket_name"`
 }
 
 func init() {
-	f, err := os.Open("../config.json")
+	configFile := "../config.json"
+	var config Config
+	f, err := os.Open(configFile)
 	if err != nil {
-		panic(err)
+		f, err = os.OpenFile(configFile, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+		config = Config{
+			Local:           local.Config{BasePath: "/tmp/osi", HttpAddr: "http://localhost:8080", HttpSecret: "example"},
+			UseName:         local.Name,
+			LocalBucketName: "example",
+		}
+		err = json.NewEncoder(f).Encode(config)
+		if err != nil {
+			panic(err)
+		}
+		_ = f.Close()
+	} else {
+		err = json.NewDecoder(f).Decode(&config)
+		if err != nil {
+			panic(err)
+		}
+		_ = f.Close()
 	}
 
-	var config Config
-	err = json.NewDecoder(f).Decode(&config)
-	if err != nil {
-		panic(err)
-	}
 	switch config.UseName {
-	case aliyun.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseAliYun(config.AliYun))
-		bucket = objectstore.Bucket(config.AliYunBucketName)
+	case oss.Name:
+		objectStore = sugar.MustNewObjectStore(sugar.UseOSS(config.OSS))
+		bucket = objectStore.Bucket(config.AliYunBucketName)
 	case s3.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseS3(config.S3))
-		bucket = objectstore.Bucket(config.S3BucketName)
-	case tencent.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseTencent(config.Tencent))
-		bucket = objectstore.Bucket(config.TencentBucketName)
+		objectStore = sugar.MustNewObjectStore(sugar.UseS3(config.S3))
+		bucket = objectStore.Bucket(config.S3BucketName)
+	case cos.Name:
+		objectStore = sugar.MustNewObjectStore(sugar.UseCOS(config.COS))
+		bucket = objectStore.Bucket(config.TencentBucketName)
 	case local.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseLocal(config.Local))
-		bucket = objectstore.Bucket(config.LocalBucketName)
+		objectStore = sugar.MustNewObjectStore(sugar.UseLocal(config.Local))
+		bucket = objectStore.Bucket(config.LocalBucketName)
 	case minio.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseMinio(config.Minio))
-		bucket = objectstore.Bucket(config.MinioBucketName)
-	case huawei.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseHuawei(config.Huawei))
-		bucket = objectstore.Bucket(config.HuaweiBucketName)
+		objectStore = sugar.MustNewObjectStore(sugar.UseMinio(config.Minio))
+		bucket = objectStore.Bucket(config.MinioBucketName)
+	case obs.Name:
+		objectStore = sugar.MustNewObjectStore(sugar.UseOBS(config.OBS))
+		bucket = objectStore.Bucket(config.HuaweiBucketName)
 	default:
-		panic("no support objectstore")
+		panic("no support store")
 	}
 }
 
@@ -94,7 +110,7 @@ func TestBucket_DeleteObject(t *testing.T) {
 	err = bucket.DeleteObject("test/example.txt")
 	assert.NoError(t, err)
 	_, err = bucket.GetObject("test/example.txt")
-	assert.ErrorIs(t, err, oss.ObjectNotFound)
+	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
 func TestBucket_GetObject(t *testing.T) {

@@ -1,10 +1,10 @@
-package huawei_test
+package oss_test
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/huawei"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/oss"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	objectStore oss.ObjectStore
-	bucket      oss.Bucket
+	objectStore osi.ObjectStore
+	bucket      osi.Bucket
 )
 
 type Config struct {
-	Huawei           huawei.Config `json:"huawei"`
-	HuaweiBucketName string        `json:"huawei_bucket_name"`
+	AliYun           oss.Config `json:"aliyun"`
+	AliYunBucketName string     `json:"aliyun_bucket_name"`
 }
 
 func init() {
@@ -35,8 +35,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	objectStore = huawei.MustNewObjectStore(config.Huawei)
-	bucket = objectStore.Bucket(config.HuaweiBucketName)
+	objectStore = oss.MustNewObjectStore(config.AliYun)
+	bucket = objectStore.Bucket(config.AliYunBucketName)
 }
 
 func TestBucket_PutObject(t *testing.T) {
@@ -57,7 +57,7 @@ func TestBucket_DeleteObject(t *testing.T) {
 	err = bucket.DeleteObject("test/example.txt")
 	assert.NoError(t, err)
 	_, err = bucket.GetObject("test/example.txt")
-	assert.ErrorIs(t, err, oss.ObjectNotFound)
+	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
 func TestBucket_GetObject(t *testing.T) {

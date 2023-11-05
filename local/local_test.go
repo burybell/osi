@@ -2,8 +2,8 @@ package local_test
 
 import (
 	"encoding/json"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/local"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/local"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	objectStore oss.ObjectStore
-	bucket      oss.Bucket
+	objectStore osi.ObjectStore
+	bucket      osi.Bucket
 )
 
 type Config struct {
@@ -57,7 +57,7 @@ func TestBucket_DeleteObject(t *testing.T) {
 	err = bucket.DeleteObject("test/example.txt")
 	assert.NoError(t, err)
 	_, err = bucket.GetObject("test/example.txt")
-	assert.ErrorIs(t, err, oss.ObjectNotFound)
+	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
 func TestBucket_GetObject(t *testing.T) {

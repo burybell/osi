@@ -2,31 +2,31 @@ package sugar
 
 import (
 	"errors"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/aliyun"
-	"github.com/burybell/oss/huawei"
-	"github.com/burybell/oss/local"
-	"github.com/burybell/oss/minio"
-	"github.com/burybell/oss/s3"
-	"github.com/burybell/oss/tencent"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/cos"
+	"github.com/burybell/osi/local"
+	"github.com/burybell/osi/minio"
+	"github.com/burybell/osi/obs"
+	"github.com/burybell/osi/oss"
+	"github.com/burybell/osi/s3"
 )
 
 type Options struct {
-	AliYun  aliyun.Config
+	OSS     oss.Config
 	S3      s3.Config
-	Tencent tencent.Config
+	COS     cos.Config
 	Local   local.Config
 	Minio   minio.Config
-	Huawei  huawei.Config
+	OBS     obs.Config
 	UseName string
 }
 
 type Option func(opts *Options)
 
-func UseAliYun(config aliyun.Config) Option {
+func UseOSS(config oss.Config) Option {
 	return func(opts *Options) {
-		opts.AliYun = config
-		opts.UseName = aliyun.Name
+		opts.OSS = config
+		opts.UseName = oss.Name
 	}
 }
 
@@ -51,21 +51,21 @@ func UseMinio(config minio.Config) Option {
 	}
 }
 
-func UseTencent(config tencent.Config) Option {
+func UseCOS(config cos.Config) Option {
 	return func(opts *Options) {
-		opts.Tencent = config
-		opts.UseName = tencent.Name
+		opts.COS = config
+		opts.UseName = cos.Name
 	}
 }
 
-func UseHuawei(config huawei.Config) Option {
+func UseOBS(config obs.Config) Option {
 	return func(opts *Options) {
-		opts.Huawei = config
-		opts.UseName = huawei.Name
+		opts.OBS = config
+		opts.UseName = obs.Name
 	}
 }
 
-func NewObjectStore(opt ...Option) (oss.ObjectStore, error) {
+func NewObjectStore(opt ...Option) (osi.ObjectStore, error) {
 	opts := &Options{}
 	for _, opt := range opt {
 		opt(opts)
@@ -77,24 +77,24 @@ func NewObjectStore(opt ...Option) (oss.ObjectStore, error) {
 	}
 
 	switch opts.UseName {
-	case aliyun.Name:
-		return aliyun.NewObjectStore(opts.AliYun)
+	case oss.Name:
+		return oss.NewObjectStore(opts.OSS)
 	case s3.Name:
 		return s3.NewObjectStore(opts.S3)
-	case tencent.Name:
-		return tencent.NewObjectStore(opts.Tencent)
+	case cos.Name:
+		return cos.NewObjectStore(opts.COS)
 	case local.Name:
 		return local.NewObjectStore(opts.Local)
 	case minio.Name:
 		return minio.NewObjectStore(opts.Minio)
-	case huawei.Name:
-		return huawei.NewObjectStore(opts.Huawei)
+	case obs.Name:
+		return obs.NewObjectStore(opts.OBS)
 	default:
 		return nil, errors.New("no support object store")
 	}
 }
 
-func MustNewObjectStore(opt ...Option) oss.ObjectStore {
+func MustNewObjectStore(opt ...Option) osi.ObjectStore {
 	store, err := NewObjectStore(opt...)
 	if err != nil {
 		panic(err)

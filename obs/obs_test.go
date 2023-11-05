@@ -1,10 +1,10 @@
-package tencent_test
+package obs_test
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/tencent"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/obs"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	objectStore oss.ObjectStore
-	bucket      oss.Bucket
+	objectStore osi.ObjectStore
+	bucket      osi.Bucket
 )
 
 type Config struct {
-	Tencent           tencent.Config `json:"tencent"`
-	TencentBucketName string         `json:"tencent_bucket_name"`
+	OBS           obs.Config `json:"obs"`
+	OBSBucketName string     `json:"obs_bucket_name"`
 }
 
 func init() {
@@ -35,8 +35,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	objectStore = tencent.MustNewObjectStore(config.Tencent)
-	bucket = objectStore.Bucket(config.TencentBucketName)
+	objectStore = obs.MustNewObjectStore(config.OBS)
+	bucket = objectStore.Bucket(config.OBSBucketName)
 }
 
 func TestBucket_PutObject(t *testing.T) {
@@ -57,7 +57,7 @@ func TestBucket_DeleteObject(t *testing.T) {
 	err = bucket.DeleteObject("test/example.txt")
 	assert.NoError(t, err)
 	_, err = bucket.GetObject("test/example.txt")
-	assert.ErrorIs(t, err, oss.ObjectNotFound)
+	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
 func TestBucket_GetObject(t *testing.T) {

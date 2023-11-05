@@ -1,4 +1,4 @@
-package oss
+package osi
 
 type ACL = string
 

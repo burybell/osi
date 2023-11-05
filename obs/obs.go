@@ -1,8 +1,8 @@
-package huawei
+package obs
 
 import (
 	"fmt"
-	"github.com/burybell/oss"
+	"github.com/burybell/osi"
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"io"
 	"strconv"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Name = "huawei"
+	Name = "obs"
 )
 
 type Config struct {
@@ -21,12 +21,12 @@ type Config struct {
 	Endpoint string `yaml:"endpoint" mapstructure:"endpoint" json:"endpoint"`
 }
 
-type objectstore struct {
+type ObjectStore struct {
 	config Config
 	client *obs.ObsClient
 }
 
-func NewObjectStore(config Config) (oss.ObjectStore, error) {
+func NewObjectStore(config Config) (osi.ObjectStore, error) {
 	if config.Endpoint == "" {
 		config.Endpoint = fmt.Sprintf("https://obs.%s.myhuaweicloud.com", config.Region)
 	}
@@ -34,10 +34,10 @@ func NewObjectStore(config Config) (oss.ObjectStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &objectstore{config: config, client: client}, nil
+	return &ObjectStore{config: config, client: client}, nil
 }
 
-func MustNewObjectStore(config Config) oss.ObjectStore {
+func MustNewObjectStore(config Config) osi.ObjectStore {
 	store, err := NewObjectStore(config)
 	if err != nil {
 		panic(err)
@@ -45,11 +45,11 @@ func MustNewObjectStore(config Config) oss.ObjectStore {
 	return store
 }
 
-func (t *objectstore) Name() string {
+func (t *ObjectStore) Name() string {
 	return Name
 }
 
-func (t *objectstore) Bucket(name string) oss.Bucket {
+func (t *ObjectStore) Bucket(name string) osi.Bucket {
 	return &bucket{
 		config: t.config,
 		client: t.client,
@@ -57,7 +57,7 @@ func (t *objectstore) Bucket(name string) oss.Bucket {
 	}
 }
 
-func (t *objectstore) ACLEnum() oss.ACLEnum {
+func (t *ObjectStore) ACLEnum() osi.ACLEnum {
 	return aclEnum{}
 }
 
@@ -67,11 +67,11 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (oss.Object, error) {
+func (t *bucket) GetObject(path string) (osi.Object, error) {
 	acl, err := t.client.GetObjectAcl(&obs.GetObjectAclInput{Bucket: t.bucket, Key: path})
 	if err != nil {
 		if err.(obs.ObsError).Code == "NoSuchKey" {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -94,14 +94,14 @@ func (t *bucket) GetObject(path string) (oss.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewObject(t.bucket, path, ACL, resp.Body), nil
+	return osi.NewObject(t.bucket, path, ACL, resp.Body), nil
 }
 
 func (t *bucket) PutObject(path string, reader io.Reader) error {
 	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) error {
+func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
 	_, err := t.client.PutObject(&obs.PutObjectInput{PutObjectBasicInput: obs.PutObjectBasicInput{ObjectOperationInput: obs.ObjectOperationInput{Bucket: t.bucket, Key: path, ACL: obs.AclType(acl)}}, Body: reader})
 	return err
 }
@@ -122,8 +122,8 @@ func (t *bucket) DeleteObject(path string) error {
 	return err
 }
 
-func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
-	var oms = make([]oss.ObjectMeta, 0)
+func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+	var oms = make([]osi.ObjectMeta, 0)
 	var marker = ""
 	for {
 		objects, err := t.client.ListObjects(&obs.ListObjectsInput{
@@ -139,7 +139,7 @@ func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
 				if strings.HasSuffix(key.Key, "/") {
 					continue
 				}
-				oms = append(oms, oss.NewObjectMeta(t.bucket, key.Key))
+				oms = append(oms, osi.NewObjectMeta(t.bucket, key.Key))
 			}
 		}
 		if !objects.IsTruncated {
@@ -154,11 +154,11 @@ func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
 	}
 }
 
-func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
+func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	resp, err := t.client.HeadObject(&obs.HeadObjectInput{Bucket: t.bucket, Key: path})
 	if err != nil {
 		if err.(obs.ObsError).Code == "NoSuchKey" {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -168,9 +168,9 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 		if err != nil {
 			return nil, err
 		}
-		return oss.NewSize(sz), nil
+		return osi.NewSize(sz), nil
 	}
-	return oss.NewSize(0), nil
+	return osi.NewSize(0), nil
 }
 
 func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
@@ -189,18 +189,18 @@ func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration)
 type aclEnum struct {
 }
 
-func (t aclEnum) Private() oss.ACL {
-	return oss.ACL(obs.AclPrivate)
+func (t aclEnum) Private() osi.ACL {
+	return osi.ACL(obs.AclPrivate)
 }
 
-func (t aclEnum) PublicRead() oss.ACL {
-	return oss.ACL(obs.AclPublicRead)
+func (t aclEnum) PublicRead() osi.ACL {
+	return osi.ACL(obs.AclPublicRead)
 }
 
-func (t aclEnum) PublicReadWrite() oss.ACL {
-	return oss.ACL(obs.AclPublicReadWrite)
+func (t aclEnum) PublicReadWrite() osi.ACL {
+	return osi.ACL(obs.AclPublicReadWrite)
 }
 
-func (t aclEnum) Default() oss.ACL {
+func (t aclEnum) Default() osi.ACL {
 	return ""
 }

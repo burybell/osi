@@ -1,21 +1,20 @@
-# oss
+# osi
 
-A universal OSS interface that has implemented s3, aliyun, mini, tent (cos), and local storage media
+A universal object store interface that has implemented s3, oss, minio, cos, obs, and local storage media
 
 # Current supported
 
 - [x] s3
-- [x] aliyun
-- [x] mini
-- [x] tencent (cos)
+- [x] oss
+- [x] minio
+- [x] cos
+- [x] obs
 - [x] local (local file system)
-- [ ] qiniu
-- [x] huawei
 
 # Install
 
 ```shell
-go get github.com/burybell/oss
+go get github.com/burybell/osi
 ```
 
 # Usage
@@ -47,8 +46,8 @@ store,err := minio.NewObjectStore(minio.Config{
 package main
 
 import (
-	"github.com/burybell/oss/s3"
-	"github.com/burybell/oss/sugar"
+	"github.com/burybell/osi/s3"
+	"github.com/burybell/osi/sugar"
 )
 
 func main() {
@@ -123,8 +122,8 @@ func main() {
 package main
 
 import (
-	"github.com/burybell/oss/local"
-	"github.com/burybell/oss/sugar"
+	"github.com/burybell/osi/local"
+	"github.com/burybell/osi/sugar"
 	"log"
 	"net/http"
 	"time"
@@ -133,7 +132,7 @@ import (
 func main() {
 
 	store := sugar.MustNewObjectStore(sugar.UseLocal(local.Config{
-		BasePath:   "/tmp/oss",
+		BasePath:   "/tmp/osi",
 		HttpAddr:   "http://localhost:8080",
 		HttpSecret: "example",
 	}))

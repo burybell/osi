@@ -3,8 +3,8 @@ package s3_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/burybell/oss"
-	"github.com/burybell/oss/s3"
+	"github.com/burybell/osi"
+	"github.com/burybell/osi/s3"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	objectStore oss.ObjectStore
-	bucket      oss.Bucket
+	objectStore osi.ObjectStore
+	bucket      osi.Bucket
 )
 
 type Config struct {
@@ -57,7 +57,7 @@ func TestBucket_DeleteObject(t *testing.T) {
 	err = bucket.DeleteObject("test/example.txt")
 	assert.NoError(t, err)
 	_, err = bucket.GetObject("test/example.txt")
-	assert.ErrorIs(t, err, oss.ObjectNotFound)
+	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
 func TestBucket_GetObject(t *testing.T) {

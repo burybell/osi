@@ -2,7 +2,7 @@ package local_test
 
 import (
 	"fmt"
-	"github.com/burybell/oss/local"
+	"github.com/burybell/osi/local"
 	"net/http"
 	"testing"
 )
