@@ -1,14 +1,14 @@
-module github.com/burybell/oss
+module github.com/burybell/osi
 
 go 1.17
 
 require (
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.8+incompatible
-	github.com/aws/aws-sdk-go v1.44.324
-	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.4+incompatible
-	github.com/minio/minio-go/v7 v7.0.61
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.1+incompatible
+	github.com/aws/aws-sdk-go v1.47.3
+	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.9+incompatible
+	github.com/minio/minio-go/v7 v7.0.63
 	github.com/stretchr/testify v1.8.4
-	github.com/tencentyun/cos-go-sdk-v5 v0.7.42
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.45
 )
 
 require (
@@ -30,11 +30,11 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/time v0.4.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

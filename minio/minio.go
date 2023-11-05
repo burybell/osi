@@ -3,7 +3,7 @@ package minio
 import (
 	"context"
 	"errors"
-	"github.com/burybell/oss"
+	"github.com/burybell/osi"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
@@ -25,12 +25,12 @@ type Config struct {
 	UseSSL   bool   `yaml:"use_ssl" mapstructure:"use_ssl" json:"use_ssl"`
 }
 
-type objectstore struct {
+type ObjectStore struct {
 	config Config
 	client *minio.Client
 }
 
-func NewObjectStore(config Config) (oss.ObjectStore, error) {
+func NewObjectStore(config Config) (osi.ObjectStore, error) {
 	client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.KeyID, config.Secret, ""),
 		Secure: config.UseSSL,
@@ -39,10 +39,10 @@ func NewObjectStore(config Config) (oss.ObjectStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &objectstore{config: config, client: client}, nil
+	return &ObjectStore{config: config, client: client}, nil
 }
 
-func MustNewObjectStore(config Config) oss.ObjectStore {
+func MustNewObjectStore(config Config) osi.ObjectStore {
 	store, err := NewObjectStore(config)
 	if err != nil {
 		panic(err)
@@ -50,11 +50,11 @@ func MustNewObjectStore(config Config) oss.ObjectStore {
 	return store
 }
 
-func (t *objectstore) Name() string {
+func (t *ObjectStore) Name() string {
 	return Name
 }
 
-func (t *objectstore) Bucket(name string) oss.Bucket {
+func (t *ObjectStore) Bucket(name string) osi.Bucket {
 	return &bucket{
 		config: t.config,
 		client: t.client,
@@ -62,7 +62,7 @@ func (t *objectstore) Bucket(name string) oss.Bucket {
 	}
 }
 
-func (t *objectstore) ACLEnum() oss.ACLEnum {
+func (t *ObjectStore) ACLEnum() osi.ACLEnum {
 	return aclEnum{}
 }
 
@@ -72,12 +72,12 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (oss.Object, error) {
+func (t *bucket) GetObject(path string) (osi.Object, error) {
 	acl, err := t.client.GetObjectACL(context.TODO(), t.bucket, path)
 	if err != nil {
 		var minioErr minio.ErrorResponse
 		if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -100,14 +100,14 @@ func (t *bucket) GetObject(path string) (oss.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewObject(t.bucket, path, ACL, object), nil
+	return osi.NewObject(t.bucket, path, ACL, object), nil
 }
 
 func (t *bucket) PutObject(path string, reader io.Reader) error {
 	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) error {
+func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
 	opts := minio.PutObjectOptions{}
 	opts.Header().Set("x-amz-acl", acl)
 	opts.ContentType = mime.TypeByExtension(filepath.Ext(path))
@@ -127,8 +127,8 @@ func (t *bucket) DeleteObject(path string) error {
 	return t.client.RemoveObject(context.TODO(), t.bucket, path, minio.RemoveObjectOptions{})
 }
 
-func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
-	var oms = make([]oss.ObjectMeta, 0)
+func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+	var oms = make([]osi.ObjectMeta, 0)
 	objects := t.client.ListObjects(context.TODO(), t.bucket, minio.ListObjectsOptions{
 		Prefix:  prefix,
 		MaxKeys: 200,
@@ -141,17 +141,17 @@ func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
 		if strings.HasSuffix(object.Key, "/") {
 			continue
 		}
-		oms = append(oms, oss.NewObjectMeta(t.bucket, object.Key))
+		oms = append(oms, osi.NewObjectMeta(t.bucket, object.Key))
 	}
 	return oms, nil
 }
 
-func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
+func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	stat, err := t.client.StatObject(context.TODO(), t.bucket, path, minio.StatObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewSize(stat.Size), nil
+	return osi.NewSize(stat.Size), nil
 }
 
 func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
@@ -165,18 +165,18 @@ func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration)
 type aclEnum struct {
 }
 
-func (t aclEnum) Private() oss.ACL {
+func (t aclEnum) Private() osi.ACL {
 	return "private"
 }
 
-func (t aclEnum) PublicRead() oss.ACL {
+func (t aclEnum) PublicRead() osi.ACL {
 	return "public-read"
 }
 
-func (t aclEnum) PublicReadWrite() oss.ACL {
+func (t aclEnum) PublicReadWrite() osi.ACL {
 	return "public-read-write"
 }
 
-func (t aclEnum) Default() oss.ACL {
+func (t aclEnum) Default() osi.ACL {
 	return ""
 }

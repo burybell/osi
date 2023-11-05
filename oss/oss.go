@@ -1,10 +1,10 @@
-package aliyun
+package oss
 
 import (
 	"errors"
 	"fmt"
 	aliyun "github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/burybell/oss"
+	"github.com/burybell/osi"
 	"io"
 	"mime"
 	"path/filepath"
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	Name = "aliyun"
+	Name = "oss"
 )
 
 type Config struct {
@@ -24,12 +24,12 @@ type Config struct {
 	Endpoint string `yaml:"endpoint" mapstructure:"endpoint" json:"endpoint"`
 }
 
-type objectstore struct {
+type ObjectStore struct {
 	config Config
 	client *aliyun.Client
 }
 
-func NewObjectStore(config Config) (oss.ObjectStore, error) {
+func NewObjectStore(config Config) (osi.ObjectStore, error) {
 	if config.Endpoint == "" {
 		config.Endpoint = fmt.Sprintf("https://oss-%s.aliyuncs.com", config.Region)
 	}
@@ -37,10 +37,10 @@ func NewObjectStore(config Config) (oss.ObjectStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &objectstore{config: config, client: client}, nil
+	return &ObjectStore{config: config, client: client}, nil
 }
 
-func MustNewObjectStore(config Config) oss.ObjectStore {
+func MustNewObjectStore(config Config) osi.ObjectStore {
 	store, err := NewObjectStore(config)
 	if err != nil {
 		panic(err)
@@ -48,15 +48,15 @@ func MustNewObjectStore(config Config) oss.ObjectStore {
 	return store
 }
 
-func (t *objectstore) Name() string {
+func (t *ObjectStore) Name() string {
 	return Name
 }
 
-func (t *objectstore) Bucket(name string) oss.Bucket {
+func (t *ObjectStore) Bucket(name string) osi.Bucket {
 	return &bucket{config: t.config, client: t.client, bucket: name}
 }
 
-func (t *objectstore) ACLEnum() oss.ACLEnum {
+func (t *ObjectStore) ACLEnum() osi.ACLEnum {
 	return aclEnum{}
 }
 
@@ -66,7 +66,7 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (oss.Object, error) {
+func (t *bucket) GetObject(path string) (osi.Object, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (t *bucket) GetObject(path string) (oss.Object, error) {
 	if err != nil {
 		var serverError aliyun.ServiceError
 		if errors.As(err, &serverError) && serverError.Code == "NoSuchKey" {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -83,15 +83,15 @@ func (t *bucket) GetObject(path string) (oss.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewObject(t.bucket, path, acl.ACL, object), nil
+	return osi.NewObject(t.bucket, path, acl.ACL, object), nil
 }
 
 func (t *bucket) PutObject(path string, reader io.Reader) error {
 	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) error {
-	object := oss.NewObject(t.bucket, path, acl, io.NopCloser(reader))
+func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
+	object := osi.NewObject(t.bucket, path, acl, io.NopCloser(reader))
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return err
@@ -115,13 +115,13 @@ func (t *bucket) DeleteObject(path string) error {
 	return bkt.DeleteObject(path)
 }
 
-func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
+func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
 	}
 
-	var oms = make([]oss.ObjectMeta, 0)
+	var oms = make([]osi.ObjectMeta, 0)
 	var marker = ""
 	for {
 		objects, err := bkt.ListObjects(aliyun.Prefix(prefix), aliyun.MaxKeys(200), aliyun.Marker(marker))
@@ -132,7 +132,7 @@ func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
 			if strings.HasSuffix(o.Key, "/") {
 				continue
 			}
-			oms = append(oms, oss.NewObjectMeta(t.bucket, o.Key))
+			oms = append(oms, osi.NewObjectMeta(t.bucket, o.Key))
 		}
 		if !objects.IsTruncated {
 			return oms, nil
@@ -142,7 +142,7 @@ func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
 	}
 }
 
-func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
+func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 	if err != nil {
 		var serverError aliyun.ServiceError
 		if errors.As(err, &serverError) && serverError.Code == "NoSuchKey" {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewSize(size), nil
+	return osi.NewSize(size), nil
 }
 
 func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
@@ -173,18 +173,18 @@ func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration)
 type aclEnum struct {
 }
 
-func (t aclEnum) Private() oss.ACL {
+func (t aclEnum) Private() osi.ACL {
 	return "private"
 }
 
-func (t aclEnum) PublicRead() oss.ACL {
+func (t aclEnum) PublicRead() osi.ACL {
 	return "public-read"
 }
 
-func (t aclEnum) PublicReadWrite() oss.ACL {
+func (t aclEnum) PublicReadWrite() osi.ACL {
 	return "public-read-write"
 }
 
-func (t aclEnum) Default() oss.ACL {
+func (t aclEnum) Default() osi.ACL {
 	return "default"
 }

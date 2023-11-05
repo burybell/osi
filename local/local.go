@@ -3,7 +3,7 @@ package local
 import (
 	"errors"
 	"fmt"
-	"github.com/burybell/oss"
+	"github.com/burybell/osi"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,11 +22,11 @@ type Config struct {
 	HttpSecret string `yaml:"http_secret" mapstructure:"http_secret" json:"http_secret"`
 }
 
-type objectstore struct {
+type ObjectStore struct {
 	config Config
 }
 
-func NewObjectStore(config Config) (oss oss.ObjectStore, err error) {
+func NewObjectStore(config Config) (oss osi.ObjectStore, err error) {
 	stat, err := os.Stat(config.BasePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -44,13 +44,13 @@ func NewObjectStore(config Config) (oss oss.ObjectStore, err error) {
 	}
 	defer func() {
 		if config.HttpAddr != "" && err == nil {
-			HandleHttp(oss.(*objectstore), config.HttpSecret)
+			HandleHttp(oss.(*ObjectStore), config.HttpSecret)
 		}
 	}()
-	return &objectstore{config: config}, nil
+	return &ObjectStore{config: config}, nil
 }
 
-func MustNewObjectStore(config Config) oss.ObjectStore {
+func MustNewObjectStore(config Config) osi.ObjectStore {
 	store, err := NewObjectStore(config)
 	if err != nil {
 		panic(err)
@@ -58,11 +58,11 @@ func MustNewObjectStore(config Config) oss.ObjectStore {
 	return store
 }
 
-func (t *objectstore) Name() string {
+func (t *ObjectStore) Name() string {
 	return Name
 }
 
-func (t *objectstore) Bucket(name string) oss.Bucket {
+func (t *ObjectStore) Bucket(name string) osi.Bucket {
 	bucketPath := fmt.Sprintf("%s/%s", t.config.BasePath, name)
 	var bucketErr error
 	stat, err := os.Stat(bucketPath)
@@ -88,7 +88,7 @@ func (t *objectstore) Bucket(name string) oss.Bucket {
 	}
 }
 
-func (t *objectstore) ACLEnum() oss.ACLEnum {
+func (t *ObjectStore) ACLEnum() osi.ACLEnum {
 	return aclEnum{}
 }
 
@@ -102,14 +102,14 @@ func (t *bucket) fullPath(path string) string {
 	return fmt.Sprintf("%s/%s/%s", t.config.BasePath, t.bucket, path)
 }
 
-func (t *bucket) GetObject(path string) (oss.Object, error) {
+func (t *bucket) GetObject(path string) (osi.Object, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
 	file, err := os.Open(t.fullPath(path))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (t *bucket) GetObject(path string) (oss.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oss.NewObject(t.bucket, path, strconv.FormatInt(int64(stat.Mode()), 10), file), nil
+	return osi.NewObject(t.bucket, path, strconv.FormatInt(int64(stat.Mode()), 10), file), nil
 }
 
 func (t *bucket) PutObject(path string, reader io.Reader) error {
@@ -127,7 +127,7 @@ func (t *bucket) PutObject(path string, reader io.Reader) error {
 	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl oss.ACL) error {
+func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
 	if t.bucketErr != nil {
 		return t.bucketErr
 	}
@@ -163,7 +163,7 @@ func (t *bucket) HeadObject(path string) (bool, error) {
 	_, err := os.Stat(t.fullPath(path))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, oss.ObjectNotFound
+			return false, osi.ObjectNotFound
 		}
 		return false, err
 	}
@@ -177,21 +177,21 @@ func (t *bucket) DeleteObject(path string) error {
 	return os.Remove(t.fullPath(path))
 }
 
-func (t *bucket) ListObject(prefix string) ([]oss.ObjectMeta, error) {
+func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
-	var oms = make([]oss.ObjectMeta, 0)
+	var oms = make([]osi.ObjectMeta, 0)
 	err := filepath.Walk(t.fullPath(prefix), func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-			oms = append(oms, oss.NewObjectMeta(t.bucket, strings.TrimPrefix(path, t.config.BasePath+"/"+t.bucket+"/")))
+			oms = append(oms, osi.NewObjectMeta(t.bucket, strings.TrimPrefix(path, t.config.BasePath+"/"+t.bucket+"/")))
 		}
 		return nil
 	})
 	return oms, err
 }
 
-func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
+func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
@@ -199,11 +199,11 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 	stat, err := os.Stat(t.fullPath(path))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, oss.ObjectNotFound
+			return nil, osi.ObjectNotFound
 		}
 		return nil, err
 	}
-	return oss.NewSize(stat.Size()), nil
+	return osi.NewSize(stat.Size()), nil
 }
 
 func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
@@ -215,18 +215,18 @@ func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration)
 type aclEnum struct {
 }
 
-func (t aclEnum) Private() oss.ACL {
+func (t aclEnum) Private() osi.ACL {
 	return "0600"
 }
 
-func (t aclEnum) PublicRead() oss.ACL {
+func (t aclEnum) PublicRead() osi.ACL {
 	return "0644"
 }
 
-func (t aclEnum) PublicReadWrite() oss.ACL {
+func (t aclEnum) PublicReadWrite() osi.ACL {
 	return "0666"
 }
 
-func (t aclEnum) Default() oss.ACL {
+func (t aclEnum) Default() osi.ACL {
 	return "0644"
 }

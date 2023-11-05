@@ -1,4 +1,4 @@
-package oss
+package osi
 
 type ObjectStore interface {
 	Name() string

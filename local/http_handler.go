@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/burybell/oss"
+	"github.com/burybell/osi"
 	"io"
 	"mime"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 
 type HttpHandler struct {
 	Secret string
-	store  *objectstore
+	store  *ObjectStore
 }
 
 func (t *HttpHandler) GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func (t *HttpHandler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	object, err := t.store.Bucket(bkt).GetObject(path)
 	if err != nil {
-		if errors.Is(err, oss.ObjectNotFound) {
+		if errors.Is(err, osi.ObjectNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -83,7 +83,7 @@ func (t *HttpHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = t.store.Bucket(bkt).DeleteObject(path)
 	if err != nil {
-		if errors.Is(err, oss.ObjectNotFound) {
+		if errors.Is(err, osi.ObjectNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -100,7 +100,7 @@ func (t *HttpHandler) GetBucketAndPath(r *http.Request) (string, string, error) 
 	return items[0], strings.Join(items[1:], "/"), nil
 }
 
-func HandleHttp(store *objectstore, secret string) {
+func HandleHttp(store *ObjectStore, secret string) {
 	handler := HttpHandler{Secret: secret, store: store}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		expires, err := strconv.ParseInt(r.URL.Query().Get("expires"), 10, 64)
