@@ -185,7 +185,7 @@ func (t *bucket) GetObjectSize(path string) (oss.Size, error) {
 	resp, err := t.client.HeadObject(&s3.HeadObjectInput{Bucket: &t.bucket, Key: &path})
 	if err != nil {
 		if err.(awserr.Error).Code() == "NotFound" {
-			return nil, nil
+			return nil, oss.ObjectNotFound
 		}
 		return nil, err
 	}

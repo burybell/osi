@@ -10,7 +10,7 @@ A universal OSS interface that has implemented s3, aliyun, mini, tent (cos), and
 - [x] tencent (cos)
 - [x] local (local file system)
 - [ ] qiniu
-- [ ] huawei
+- [x] huawei
 
 # Install
 

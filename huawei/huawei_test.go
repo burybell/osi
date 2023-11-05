@@ -1,16 +1,10 @@
-package sugar_test
+package huawei_test
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/burybell/oss"
-	"github.com/burybell/oss/aliyun"
 	"github.com/burybell/oss/huawei"
-	"github.com/burybell/oss/local"
-	"github.com/burybell/oss/minio"
-	"github.com/burybell/oss/s3"
-	"github.com/burybell/oss/sugar"
-	"github.com/burybell/oss/tencent"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -21,24 +15,13 @@ import (
 )
 
 var (
-	objectstore oss.ObjectStore
+	objectStore oss.ObjectStore
 	bucket      oss.Bucket
 )
 
 type Config struct {
-	AliYun            aliyun.Config  `json:"aliyun"`
-	S3                s3.Config      `json:"s3"`
-	Tencent           tencent.Config `json:"tencent"`
-	Local             local.Config   `json:"local"`
-	Minio             minio.Config   `json:"minio"`
-	Huawei            huawei.Config  `json:"huawei"`
-	UseName           string         `json:"use_name"`
-	AliYunBucketName  string         `json:"aliyun_bucket_name"`
-	S3BucketName      string         `json:"s3_bucket_name"`
-	TencentBucketName string         `json:"tencent_bucket_name"`
-	LocalBucketName   string         `json:"local_bucket_name"`
-	MinioBucketName   string         `json:"minio_bucket_name"`
-	HuaweiBucketName  string         `json:"huawei_bucket_name"`
+	Huawei           huawei.Config `json:"huawei"`
+	HuaweiBucketName string        `json:"huawei_bucket_name"`
 }
 
 func init() {
@@ -52,28 +35,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	switch config.UseName {
-	case aliyun.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseAliYun(config.AliYun))
-		bucket = objectstore.Bucket(config.AliYunBucketName)
-	case s3.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseS3(config.S3))
-		bucket = objectstore.Bucket(config.S3BucketName)
-	case tencent.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseTencent(config.Tencent))
-		bucket = objectstore.Bucket(config.TencentBucketName)
-	case local.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseLocal(config.Local))
-		bucket = objectstore.Bucket(config.LocalBucketName)
-	case minio.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseMinio(config.Minio))
-		bucket = objectstore.Bucket(config.MinioBucketName)
-	case huawei.Name:
-		objectstore = sugar.MustNewObjectStore(sugar.UseHuawei(config.Huawei))
-		bucket = objectstore.Bucket(config.HuaweiBucketName)
-	default:
-		panic("no support objectstore")
-	}
+	objectStore = huawei.MustNewObjectStore(config.Huawei)
+	bucket = objectStore.Bucket(config.HuaweiBucketName)
 }
 
 func TestBucket_PutObject(t *testing.T) {

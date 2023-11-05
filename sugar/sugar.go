@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/burybell/oss"
 	"github.com/burybell/oss/aliyun"
+	"github.com/burybell/oss/huawei"
 	"github.com/burybell/oss/local"
 	"github.com/burybell/oss/minio"
 	"github.com/burybell/oss/s3"
@@ -16,6 +17,7 @@ type Options struct {
 	Tencent tencent.Config
 	Local   local.Config
 	Minio   minio.Config
+	Huawei  huawei.Config
 	UseName string
 }
 
@@ -56,6 +58,13 @@ func UseTencent(config tencent.Config) Option {
 	}
 }
 
+func UseHuawei(config huawei.Config) Option {
+	return func(opts *Options) {
+		opts.Huawei = config
+		opts.UseName = huawei.Name
+	}
+}
+
 func NewObjectStore(opt ...Option) (oss.ObjectStore, error) {
 	opts := &Options{}
 	for _, opt := range opt {
@@ -78,6 +87,8 @@ func NewObjectStore(opt ...Option) (oss.ObjectStore, error) {
 		return local.NewObjectStore(opts.Local)
 	case minio.Name:
 		return minio.NewObjectStore(opts.Minio)
+	case huawei.Name:
+		return huawei.NewObjectStore(opts.Huawei)
 	default:
 		return nil, errors.New("no support object store")
 	}

@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.8+incompatible
 	github.com/aws/aws-sdk-go v1.44.324
+	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.23.4+incompatible
 	github.com/minio/minio-go/v7 v7.0.61
 	github.com/stretchr/testify v1.8.4
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42
