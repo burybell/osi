@@ -1,8 +1,8 @@
 # osi
 
-A universal object store interface that has implemented s3, oss, minio, cos, obs, and local storage media
-[中文版](https://github.com/burybell/osi/blob/master/README_CN.md) 
-# Current supported
+一个通用的对象存储接口，已实现了S3、oss（阿里云）, minio（自建）, cos（腾讯云）, obs（华为云）, and local storage media（本地存储）
+
+# 当前支持
 
 - [x] s3
 - [x] oss
@@ -11,16 +11,16 @@ A universal object store interface that has implemented s3, oss, minio, cos, obs
 - [x] obs
 - [x] local (local file system)
 
-# Install
+# 安装
 
 ```shell
 go get github.com/burybell/osi
 ```
 
-# Usage
-## Initialize Instance
-### First Method
-use sugar package
+# 使用
+## 初始化实例
+### 第一种方法
+使用 sugar 包
 ```go
 store := sugar.MustNewObjectStore(sugar.UseS3(s3.Config{
     Region: "example",
@@ -29,8 +29,8 @@ store := sugar.MustNewObjectStore(sugar.UseS3(s3.Config{
 }))
 ```
 
-### Second Method
-use implementation package
+### 第二种方法
+使用实现类的包
 ```go
 store,err := minio.NewObjectStore(minio.Config{
     Region: "example",
@@ -41,7 +41,7 @@ store,err := minio.NewObjectStore(minio.Config{
 })
 ```
 
-## object operation
+## 对象操作
 ```go
 package main
 
@@ -117,7 +117,7 @@ func main() {
 
 ```
 
-## use local file system for testing or other
+## 使用本地文件系统用来测试或者其他
 ```go
 package main
 
