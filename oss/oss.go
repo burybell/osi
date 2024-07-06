@@ -1,6 +1,7 @@
 package oss
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	aliyun "github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -66,7 +67,7 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (osi.Object, error) {
+func (t *bucket) GetObject(ctx context.Context, path string) (osi.Object, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
@@ -86,11 +87,11 @@ func (t *bucket) GetObject(path string) (osi.Object, error) {
 	return osi.NewObject(t.bucket, path, acl.ACL, object), nil
 }
 
-func (t *bucket) PutObject(path string, reader io.Reader) error {
-	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
+func (t *bucket) PutObject(ctx context.Context, path string, reader io.Reader) error {
+	return t.PutObjectWithACL(ctx, path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
+func (t *bucket) PutObjectWithACL(ctx context.Context, path string, reader io.Reader, acl osi.ACL) error {
 	object := osi.NewObject(t.bucket, path, acl, io.NopCloser(reader))
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
@@ -99,7 +100,7 @@ func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) er
 	return bkt.PutObject(object.ObjectPath(), object, aliyun.ObjectACL(aliyun.ACLType(acl)), aliyun.ContentType(mime.TypeByExtension(filepath.Ext(path))))
 }
 
-func (t *bucket) HeadObject(path string) (bool, error) {
+func (t *bucket) HeadObject(ctx context.Context, path string) (bool, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return false, err
@@ -107,7 +108,7 @@ func (t *bucket) HeadObject(path string) (bool, error) {
 	return bkt.IsObjectExist(path)
 }
 
-func (t *bucket) DeleteObject(path string) error {
+func (t *bucket) DeleteObject(ctx context.Context, path string) error {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return err
@@ -115,7 +116,7 @@ func (t *bucket) DeleteObject(path string) error {
 	return bkt.DeleteObject(path)
 }
 
-func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+func (t *bucket) ListObjects(ctx context.Context, prefix string) ([]osi.ObjectMeta, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
@@ -142,7 +143,7 @@ func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	}
 }
 
-func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
+func (t *bucket) GetObjectSize(ctx context.Context, path string) (osi.Size, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return nil, err
@@ -162,12 +163,39 @@ func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	return osi.NewSize(size), nil
 }
 
-func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+func (t *bucket) SignURL(ctx context.Context, path string, method string, expiredInDur time.Duration) (string, error) {
 	bkt, err := t.client.Bucket(t.bucket)
 	if err != nil {
 		return "", err
 	}
 	return bkt.SignURL(path, aliyun.HTTPMethod(method), int64(expiredInDur.Seconds()))
+}
+
+func (t *bucket) DeleteObjects(ctx context.Context, paths []string) error {
+	var batchSize = 999
+	if len(paths) < batchSize {
+		return t.deleteFiles(ctx, paths)
+	}
+	for i := 0; i < len(paths); i += batchSize {
+		edge := i + batchSize
+		if len(paths) < edge {
+			edge = len(paths)
+		}
+		err := t.deleteFiles(ctx, paths[i:edge])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *bucket) deleteFiles(ctx context.Context, paths []string) error {
+	bkt, err := t.client.Bucket(t.bucket)
+	if err != nil {
+		return err
+	}
+	_, err = bkt.DeleteObjects(paths)
+	return err
 }
 
 type aclEnum struct {

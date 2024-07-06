@@ -72,8 +72,8 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (osi.Object, error) {
-	acl, err := t.client.GetObjectACL(context.TODO(), t.bucket, path)
+func (t *bucket) GetObject(ctx context.Context, path string) (osi.Object, error) {
+	acl, err := t.client.GetObjectACL(ctx, t.bucket, path)
 	if err != nil {
 		var minioErr minio.ErrorResponse
 		if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
@@ -96,40 +96,40 @@ func (t *bucket) GetObject(path string) (osi.Object, error) {
 		ACL = "private"
 	}
 
-	object, err := t.client.GetObject(context.TODO(), t.bucket, path, minio.GetObjectOptions{})
+	object, err := t.client.GetObject(ctx, t.bucket, path, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return osi.NewObject(t.bucket, path, ACL, object), nil
 }
 
-func (t *bucket) PutObject(path string, reader io.Reader) error {
-	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
+func (t *bucket) PutObject(ctx context.Context, path string, reader io.Reader) error {
+	return t.PutObjectWithACL(ctx, path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
+func (t *bucket) PutObjectWithACL(ctx context.Context, path string, reader io.Reader, acl osi.ACL) error {
 	opts := minio.PutObjectOptions{}
 	opts.Header().Set("x-amz-acl", acl)
 	opts.ContentType = mime.TypeByExtension(filepath.Ext(path))
-	_, err := t.client.PutObject(context.TODO(), t.bucket, path, reader, -1, opts)
+	_, err := t.client.PutObject(ctx, t.bucket, path, reader, -1, opts)
 	return err
 }
 
-func (t *bucket) HeadObject(path string) (bool, error) {
-	_, err := t.client.StatObject(context.TODO(), t.bucket, path, minio.StatObjectOptions{})
+func (t *bucket) HeadObject(ctx context.Context, path string) (bool, error) {
+	_, err := t.client.StatObject(ctx, t.bucket, path, minio.StatObjectOptions{})
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (t *bucket) DeleteObject(path string) error {
-	return t.client.RemoveObject(context.TODO(), t.bucket, path, minio.RemoveObjectOptions{})
+func (t *bucket) DeleteObject(ctx context.Context, path string) error {
+	return t.client.RemoveObject(ctx, t.bucket, path, minio.RemoveObjectOptions{})
 }
 
-func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+func (t *bucket) ListObjects(ctx context.Context, prefix string) ([]osi.ObjectMeta, error) {
 	var oms = make([]osi.ObjectMeta, 0)
-	objects := t.client.ListObjects(context.TODO(), t.bucket, minio.ListObjectsOptions{
+	objects := t.client.ListObjects(ctx, t.bucket, minio.ListObjectsOptions{
 		Prefix:  prefix,
 		MaxKeys: 200,
 	})
@@ -146,20 +146,54 @@ func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	return oms, nil
 }
 
-func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
-	stat, err := t.client.StatObject(context.TODO(), t.bucket, path, minio.StatObjectOptions{})
+func (t *bucket) GetObjectSize(ctx context.Context, path string) (osi.Size, error) {
+	stat, err := t.client.StatObject(ctx, t.bucket, path, minio.StatObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return osi.NewSize(stat.Size), nil
 }
 
-func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
-	url, err := t.client.Presign(context.TODO(), method, t.bucket, path, expiredInDur, nil)
+func (t *bucket) SignURL(ctx context.Context, path string, method string, expiredInDur time.Duration) (string, error) {
+	url, err := t.client.Presign(ctx, method, t.bucket, path, expiredInDur, nil)
 	if err != nil {
 		return "", err
 	}
 	return url.String(), nil
+}
+
+func (t *bucket) DeleteObjects(ctx context.Context, paths []string) error {
+	var batchSize = 999
+	if len(paths) < batchSize {
+		return t.deleteFiles(ctx, paths)
+	}
+	for i := 0; i < len(paths); i += batchSize {
+		edge := i + batchSize
+		if len(paths) < edge {
+			edge = len(paths)
+		}
+		err := t.deleteFiles(ctx, paths[i:edge])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *bucket) deleteFiles(ctx context.Context, paths []string) error {
+	objects := make(chan minio.ObjectInfo)
+	go func() {
+		for i := range paths {
+			objects <- minio.ObjectInfo{Key: paths[i]}
+		}
+	}()
+	errCh := t.client.RemoveObjects(ctx, t.bucket, objects, minio.RemoveObjectsOptions{})
+	for ch := range errCh {
+		if ch.Err != nil {
+			return ch.Err
+		}
+	}
+	return nil
 }
 
 type aclEnum struct {

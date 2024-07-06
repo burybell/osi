@@ -25,7 +25,7 @@ func (t *HttpHandler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	object, err := t.store.Bucket(bkt).GetObject(path)
+	object, err := t.store.Bucket(bkt).GetObject(r.Context(), path)
 	if err != nil {
 		if errors.Is(err, osi.ObjectNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -47,7 +47,7 @@ func (t *HttpHandler) PutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = t.store.Bucket(bkt).PutObject(path, r.Body)
+	err = t.store.Bucket(bkt).PutObject(r.Context(), path, r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -61,7 +61,7 @@ func (t *HttpHandler) HeadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exist, err := t.store.Bucket(bkt).HeadObject(path)
+	exist, err := t.store.Bucket(bkt).HeadObject(r.Context(), path)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -81,7 +81,7 @@ func (t *HttpHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = t.store.Bucket(bkt).DeleteObject(path)
+	err = t.store.Bucket(bkt).DeleteObject(r.Context(), path)
 	if err != nil {
 		if errors.Is(err, osi.ObjectNotFound) {
 			w.WriteHeader(http.StatusNotFound)
