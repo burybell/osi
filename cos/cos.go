@@ -81,8 +81,8 @@ type bucket struct {
 	bucket string
 }
 
-func (t *bucket) GetObject(path string) (osi.Object, error) {
-	acl, resp, err := t.client.Object.GetACL(context.TODO(), path)
+func (t *bucket) GetObject(ctx context.Context, path string) (osi.Object, error) {
+	acl, resp, err := t.client.Object.GetACL(ctx, path)
 	if err != nil {
 		if cos.IsNotFoundError(err) {
 			return nil, osi.ObjectNotFound
@@ -112,12 +112,12 @@ func (t *bucket) GetObject(path string) (osi.Object, error) {
 	return osi.NewObject(t.bucket, path, resACL, resp.Body), nil
 }
 
-func (t *bucket) PutObject(path string, reader io.Reader) error {
-	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
+func (t *bucket) PutObject(ctx context.Context, path string, reader io.Reader) error {
+	return t.PutObjectWithACL(ctx, path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
-	_, err := t.client.Object.Put(context.TODO(), path, reader, &cos.ObjectPutOptions{
+func (t *bucket) PutObjectWithACL(ctx context.Context, path string, reader io.Reader, acl osi.ACL) error {
+	_, err := t.client.Object.Put(ctx, path, reader, &cos.ObjectPutOptions{
 		ACLHeaderOptions: &cos.ACLHeaderOptions{
 			XCosACL: acl,
 		},
@@ -125,20 +125,20 @@ func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) er
 	return err
 }
 
-func (t *bucket) HeadObject(path string) (bool, error) {
-	return t.client.Object.IsExist(context.TODO(), path)
+func (t *bucket) HeadObject(ctx context.Context, path string) (bool, error) {
+	return t.client.Object.IsExist(ctx, path)
 }
 
-func (t *bucket) DeleteObject(path string) error {
-	_, err := t.client.Object.Delete(context.TODO(), path, nil)
+func (t *bucket) DeleteObject(ctx context.Context, path string) error {
+	_, err := t.client.Object.Delete(ctx, path, nil)
 	return err
 }
 
-func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+func (t *bucket) ListObjects(ctx context.Context, prefix string) ([]osi.ObjectMeta, error) {
 	var oms = make([]osi.ObjectMeta, 0)
 	var marker = ""
 	for {
-		resp, _, err := t.client.Bucket.Get(context.TODO(), &cos.BucketGetOptions{
+		resp, _, err := t.client.Bucket.Get(ctx, &cos.BucketGetOptions{
 			Prefix:  prefix,
 			Marker:  marker,
 			MaxKeys: 200,
@@ -160,8 +160,8 @@ func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	}
 }
 
-func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
-	resp, err := t.client.Object.Head(context.TODO(), path, nil)
+func (t *bucket) GetObjectSize(ctx context.Context, path string) (osi.Size, error) {
+	resp, err := t.client.Object.Head(ctx, path, nil)
 	if err != nil {
 		if cos.IsNotFoundError(err) {
 			return nil, osi.ObjectNotFound
@@ -171,12 +171,41 @@ func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	return osi.NewSize(resp.ContentLength), nil
 }
 
-func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
-	rawURL, err := t.client.Object.GetPresignedURL(context.TODO(), method, path, t.config.KeyID, t.config.Secret, expiredInDur, nil)
+func (t *bucket) SignURL(ctx context.Context, path string, method string, expiredInDur time.Duration) (string, error) {
+	rawURL, err := t.client.Object.GetPresignedURL(ctx, method, path, t.config.KeyID, t.config.Secret, expiredInDur, nil)
 	if err != nil {
 		return "", err
 	}
 	return rawURL.String(), nil
+}
+
+func (t *bucket) DeleteObjects(ctx context.Context, paths []string) error {
+	var batchSize = 999
+	if len(paths) < batchSize {
+		return t.deleteFiles(ctx, paths)
+	}
+	for i := 0; i < len(paths); i += batchSize {
+		edge := i + batchSize
+		if len(paths) < edge {
+			edge = len(paths)
+		}
+		err := t.deleteFiles(ctx, paths[i:edge])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *bucket) deleteFiles(ctx context.Context, paths []string) error {
+	opts := &cos.ObjectDeleteMultiOptions{}
+	for i := range paths {
+		opts.Objects = append(opts.Objects, cos.Object{
+			Key: paths[i],
+		})
+	}
+	_, _, err := t.client.Object.DeleteMulti(ctx, opts)
+	return err
 }
 
 type aclEnum struct {

@@ -1,6 +1,7 @@
 package local
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/burybell/osi"
@@ -102,7 +103,7 @@ func (t *bucket) fullPath(path string) string {
 	return fmt.Sprintf("%s/%s/%s", t.config.BasePath, t.bucket, path)
 }
 
-func (t *bucket) GetObject(path string) (osi.Object, error) {
+func (t *bucket) GetObject(ctx context.Context, path string) (osi.Object, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
@@ -120,14 +121,14 @@ func (t *bucket) GetObject(path string) (osi.Object, error) {
 	return osi.NewObject(t.bucket, path, strconv.FormatInt(int64(stat.Mode()), 10), file), nil
 }
 
-func (t *bucket) PutObject(path string, reader io.Reader) error {
+func (t *bucket) PutObject(ctx context.Context, path string, reader io.Reader) error {
 	if t.bucketErr != nil {
 		return t.bucketErr
 	}
-	return t.PutObjectWithACL(path, reader, aclEnum{}.Default())
+	return t.PutObjectWithACL(ctx, path, reader, aclEnum{}.Default())
 }
 
-func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) error {
+func (t *bucket) PutObjectWithACL(ctx context.Context, path string, reader io.Reader, acl osi.ACL) error {
 	if t.bucketErr != nil {
 		return t.bucketErr
 	}
@@ -155,7 +156,7 @@ func (t *bucket) PutObjectWithACL(path string, reader io.Reader, acl osi.ACL) er
 	return err
 }
 
-func (t *bucket) HeadObject(path string) (bool, error) {
+func (t *bucket) HeadObject(ctx context.Context, path string) (bool, error) {
 	if t.bucketErr != nil {
 		return false, t.bucketErr
 	}
@@ -170,14 +171,14 @@ func (t *bucket) HeadObject(path string) (bool, error) {
 	return true, nil
 }
 
-func (t *bucket) DeleteObject(path string) error {
+func (t *bucket) DeleteObject(ctx context.Context, path string) error {
 	if t.bucketErr != nil {
 		return t.bucketErr
 	}
 	return os.Remove(t.fullPath(path))
 }
 
-func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
+func (t *bucket) ListObjects(ctx context.Context, prefix string) ([]osi.ObjectMeta, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
@@ -191,7 +192,7 @@ func (t *bucket) ListObject(prefix string) ([]osi.ObjectMeta, error) {
 	return oms, err
 }
 
-func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
+func (t *bucket) GetObjectSize(ctx context.Context, path string) (osi.Size, error) {
 	if t.bucketErr != nil {
 		return nil, t.bucketErr
 	}
@@ -206,10 +207,20 @@ func (t *bucket) GetObjectSize(path string) (osi.Size, error) {
 	return osi.NewSize(stat.Size()), nil
 }
 
-func (t *bucket) SignURL(path string, method string, expiredInDur time.Duration) (string, error) {
+func (t *bucket) SignURL(ctx context.Context, path string, method string, expiredInDur time.Duration) (string, error) {
 	expires := time.Now().Add(expiredInDur).Unix()
 	signature := Sign(method, fmt.Sprintf("%s/%s", t.bucket, path), int(expires), t.config.HttpSecret)
 	return fmt.Sprintf("%s/%s/%s?expires=%d&signature=%s", t.config.HttpAddr, t.bucket, path, expires, signature), nil
+}
+
+func (t *bucket) DeleteObjects(ctx context.Context, paths []string) error {
+	for i := range paths {
+		err := os.Remove(t.fullPath(paths[i]))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type aclEnum struct {

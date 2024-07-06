@@ -1,7 +1,9 @@
 package local_test
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/burybell/osi"
 	"github.com/burybell/osi/local"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +17,7 @@ import (
 )
 
 var (
+	ctx         = context.Background()
 	objectStore osi.ObjectStore
 	bucket      osi.Bucket
 )
@@ -40,9 +43,9 @@ func init() {
 }
 
 func TestBucket_PutObject(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	object, err := bucket.GetObject("test/example.txt")
+	object, err := bucket.GetObject(ctx, "test/example.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, ".txt", object.Extension())
 	assert.Equal(t, "test/example.txt", object.ObjectPath())
@@ -52,11 +55,11 @@ func TestBucket_PutObject(t *testing.T) {
 }
 
 func TestBucket_DeleteObject(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	err = bucket.DeleteObject("test/example.txt")
+	err = bucket.DeleteObject(ctx, "test/example.txt")
 	assert.NoError(t, err)
-	_, err = bucket.GetObject("test/example.txt")
+	_, err = bucket.GetObject(ctx, "test/example.txt")
 	assert.ErrorIs(t, err, osi.ObjectNotFound)
 }
 
@@ -65,35 +68,35 @@ func TestBucket_GetObject(t *testing.T) {
 }
 
 func TestBucket_GetObjectSize(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	size, err := bucket.GetObjectSize("test/example.txt")
+	size, err := bucket.GetObjectSize(ctx, "test/example.txt")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(9), size.Size())
 }
 
 func TestBucket_HeadObject(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	exist, err := bucket.HeadObject("test/example.txt")
+	exist, err := bucket.HeadObject(ctx, "test/example.txt")
 	assert.NoError(t, err)
 	assert.True(t, exist)
 }
 
 func TestBucket_ListObject(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	objects, err := bucket.ListObject("test/")
+	objects, err := bucket.ListObjects(ctx, "test/")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(objects))
 }
 
 func Test_bucket_SignURL(t *testing.T) {
-	err := bucket.PutObject("test/example.txt", strings.NewReader("some text"))
+	err := bucket.PutObject(ctx, "test/example.txt", strings.NewReader("some text"))
 	assert.NoError(t, err)
-	url, err := bucket.SignURL("test/example.txt", http.MethodGet, time.Second*100)
-	log.Println(url)
+	url, err := bucket.SignURL(ctx, "test/example.txt", http.MethodGet, time.Second*100)
 	assert.NoError(t, err)
+	t.Logf("presigned url: %s", url)
 	go func() {
 		log.Fatalln(http.ListenAndServe(":8080", nil))
 	}()
@@ -105,4 +108,20 @@ func Test_bucket_SignURL(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		return
 	}
+}
+
+func Test_bucket_DeleteObjects(t *testing.T) {
+	paths := make([]string, 0)
+	for i := 0; i < 10; i++ {
+		filepath := fmt.Sprintf("test/example.txt")
+		paths = append(paths, filepath)
+		err := bucket.PutObject(ctx, filepath, strings.NewReader("some text"))
+		assert.NoError(t, err)
+	}
+	err := bucket.DeleteObjects(ctx, paths)
+	assert.NoError(t, err)
+
+	exist, err := bucket.HeadObject(ctx, paths[0])
+	assert.NoError(t, err)
+	assert.False(t, exist)
 }
